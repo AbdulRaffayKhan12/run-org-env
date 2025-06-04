@@ -1,0 +1,59 @@
+{
+  "name": "run-org-env",
+  "displayName": "RunOrgEnv",
+  "description": "Runs org/env script with a button",
+  "version": "0.0.1",
+  "publisher": "abdulraffay",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": ["Other"],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "*"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "runScript.runMyScript",
+        "title": "Run Org/Env Script"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "runScriptSidebar",
+          "title": "Org/Env",
+          "icon": "media/hourglass-start-solid.svg"
+        }
+      ]
+    },
+    "views": {
+      "runScriptSidebar": [
+        {
+          "id": "runScriptView",
+          "name": "Run Actions"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.100.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@typescript-eslint/eslint-plugin": "^8.31.1",
+    "@typescript-eslint/parser": "^8.31.1",
+    "eslint": "^9.25.1",
+    "typescript": "^5.8.3",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}
