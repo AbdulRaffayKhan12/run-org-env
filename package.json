@@ -4,6 +4,7 @@
   "description": "Runs org/env script with a button",
   "version": "0.0.1",
   "publisher": "abdulraffay",
+  "icon": "images/DP.png",
   "engines": {
     "vscode": "^1.56.0"
   },
