@@ -231,7 +231,6 @@ try {
     git commit -m "$commitMessage"
 
     Write-Host "`nPushing changes to remote repository (main branch)..."
-    Write-Host "👉 If prompted, use GitHub username and a Personal Access Token (not your password)."
     git push origin main
 }
 finally {
