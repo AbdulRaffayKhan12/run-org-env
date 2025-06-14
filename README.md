@@ -15,9 +15,6 @@ API-Dev-Bot is a Visual Studio Code extension that simplifies the process of sel
 - Checks whether you're already authenticated with `gcloud`.
 - If not, it triggers an interactive login through the terminal.
 
-### 📁 Locates or Creates `org-config.txt`
-- Searches for the `org-config.txt` file used to store org and environment values.
-- If not found, it creates the file in a relevant location (e.g., near an `apiproxy` folder).
 
 ### 🏢 Lists Your Apigee Organizations
 - Uses `gcloud` to fetch a list of Apigee organizations linked to your Google Cloud account.
