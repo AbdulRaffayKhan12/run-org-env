@@ -17,15 +17,15 @@
     "commands": [
       {
         "command": "runScript.runMyScript",
-        "title": "Run Org/Env Script"
+        "title": "API Proxy Deployment Script"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
           "id": "runScriptSidebar",
-          "title": "Org/Env",
-          "icon": "media/code-solidolid.svg"
+          "title": "Proxy Script",
+          "icon": "media/code-solid.svg"
         }
       ]
     },
