@@ -1,8 +1,7 @@
 # RunOrgEnv
 
 A VS Code extension to run org/env configuration scripts with a button.
-![Screenshot](images/images.png)
-
+![My Extension Logo](https://raw.githubusercontent.com/AbdulRaffayKhan12/run-org-env/main/images/DP.png)
 ## Features
 
 - Run your PowerShell org/env script quickly.
