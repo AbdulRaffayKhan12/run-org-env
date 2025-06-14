@@ -150,7 +150,7 @@ function Prompt-Selection($items, $prompt) {
     return $items[$index]
 }
 
-# Get orgs
+# ------------------ Fetching Organizations ------------------
 Write-Host "`nFetching Apigee organizations..."
 try {
     $orgsOutput = & gcloud apigee organizations list --format="value(name)"
@@ -174,7 +174,7 @@ try {
     Write-Host "Failed to set gcloud project to '$selectedOrg'."
     exit 1
 }
-
+# ------------------ Fetching Environments ------------------
 Write-Host "`nFetching environments for org: $selectedOrg ..."
 try {
     $envsOutput = & gcloud apigee environments list 
@@ -200,6 +200,22 @@ Write-Host "`nSaved org and env to: $configPath"
 
 Push-Location $configDir
 try {
+    # ------------------ GIT IDENTITY CHECK ------------------
+    $gitName = git config user.name
+    $gitEmail = git config user.email
+
+    if (-not $gitName -or -not $gitEmail) {
+        Write-Host "`n⚠ Git identity is not configured for this repo."
+        $gitName = Read-Host "Enter your Git name"
+        $gitEmail = Read-Host "Enter your Git email"
+
+        git config user.name "$gitName"
+        git config user.email "$gitEmail"
+        Write-Host "✅ Git identity set locally: $gitName <$gitEmail>"
+    } else {
+        Write-Host "✅ Git identity already configured: $gitName <$gitEmail>"
+    }
+
     Write-Host "`nStaging your changes in directory: $configDir"
     git add .
 
@@ -215,6 +231,7 @@ try {
     git commit -m "$commitMessage"
 
     Write-Host "`nPushing changes to remote repository (main branch)..."
+    Write-Host "👉 If prompted, use GitHub username and a Personal Access Token (not your password)."
     git push origin main
 }
 finally {
