@@ -209,8 +209,8 @@ try {
         $gitName = Read-Host "Enter your Git name"
         $gitEmail = Read-Host "Enter your Git email"
 
-        git config user.name "$gitName"
-        git config user.email "$gitEmail"
+        git config --global user.name $gitName
+        git config --global user.email $gitEmail
         Write-Host "✅ Git identity set locally: $gitName <$gitEmail>"
     } else {
         Write-Host "✅ Git identity already configured: $gitName <$gitEmail>"
