@@ -1,11 +1,11 @@
 {
   "name": "run-org-env",
-  "displayName": "RunOrgEnv",
+  "displayName": "API-Dev-Bot",
   "description": "Runs org/env script with a button",
   "version": "0.0.1",
   "publisher": "abdulraffay",
   "engines": {
-    "vscode": "^1.100.0"
+    "vscode": "^1.56.0"
   },
   "categories": ["Other"],
   "main": "./out/extension.js",
@@ -46,7 +46,7 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.100.0",
+    "@types/vscode": "^1.56.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
@@ -55,5 +55,9 @@
     "typescript": "^5.8.3",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.5.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AbdulRaffayKhan12/run-org-env"
   }
 }

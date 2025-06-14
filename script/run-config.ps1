@@ -1,21 +1,93 @@
+# Start script
+$currentDir = (Get-Location).Path
+Write-Host "Current directory: $currentDir"
 
-# Function to find org-config.txt upwards in folder hierarchy
+# Pre-check for gcloud CLI
+if (-not (Get-Command "gcloud" -ErrorAction SilentlyContinue)) {
+    Write-Host "`nGoogle Cloud CLI (gcloud) not found on your system."
+    Write-Host "Downloading and installing Google Cloud SDK..."
+
+    $tempInstallerPath = "$env:TEMP\google-cloud-sdk-installer.exe"
+
+    try {
+        $installerUrl = "https://dl.google.com/dl/cloudsdk/channels/rapid/GoogleCloudSDKInstaller.exe"
+        Invoke-WebRequest -Uri $installerUrl -OutFile $tempInstallerPath -UseBasicParsing
+        Write-Host "Downloaded installer to $tempInstallerPath"
+
+        $installArgs = "/S"
+        $process = Start-Process -FilePath $tempInstallerPath -ArgumentList $installArgs -Wait -PassThru
+
+        if ($process.ExitCode -ne 0) {
+            Write-Host "Google Cloud SDK installer failed with exit code $($process.ExitCode). Exiting."
+            exit 1
+        }
+
+        Write-Host "Google Cloud SDK installed successfully."
+
+        $defaultPath = "$env:ProgramFiles\Google\Cloud SDK\google-cloud-sdk\bin"
+        $altPath = "$env:ProgramFiles(x86)\Google\Cloud SDK\google-cloud-sdk\bin"
+        $userPath = "$env:LOCALAPPDATA\Google\Cloud SDK\google-cloud-sdk\bin"
+
+        if (Test-Path $defaultPath) {
+            $env:Path = "$defaultPath;$env:Path"
+            Write-Host "gcloud is now available at: $defaultPath"
+        } elseif (Test-Path $altPath) {
+            $env:Path = "$altPath;$env:Path"
+            Write-Host "gcloud is now available at: $altPath"
+        } elseif (Test-Path $userPath) {
+            $env:Path = "$userPath;$env:Path"
+            Write-Host "gcloud is now available at: $userPath"
+        } else {
+            Write-Host "Warning: Could not find gcloud path after installation in any known location."
+        }
+
+    } catch {
+        Write-Host "Error installing Google Cloud SDK: $_"
+        exit 1
+    }
+} else {
+    Write-Host "`nGoogle Cloud CLI (gcloud) is installed."
+}
+
+# ---------------- AUTH CHECK ----------------
+try {
+    $account = & gcloud auth list --filter=status:ACTIVE --format="value(account)"
+    if (-not $account) {
+        Write-Host "`nYou are not logged into gcloud. Starting authentication..."
+        Write-Host "Please open the URL shown in the terminal in a browser, log in, and paste the token here."
+
+        & gcloud auth login --no-launch-browser --brief
+
+        # Re-check login
+        $account = & gcloud auth list --filter=status:ACTIVE --format="value(account)"
+        if (-not $account) {
+            Write-Host "❌ Login did not complete successfully. Exiting."
+            exit 1
+        } else {
+            Write-Host "✅ Successfully logged in as: $account"
+        }
+    } else {
+        Write-Host "✅ Already logged in as: $account"
+    }
+} catch {
+    Write-Host "❌ Error running 'gcloud auth list'. Make sure gcloud CLI is installed correctly."
+    exit 1
+}
+
+# ------------- CONFIG LOGIC -----------------
+
 function Find-ConfigFile {
     param([string]$startDir, [string]$fileName)
 
     $currentDir = Get-Item -LiteralPath $startDir
-
     while ($currentDir -ne $null) {
         $candidate = Join-Path $currentDir.FullName $fileName
-        if (Test-Path $candidate) {
-            return $candidate
-        }
+        if (Test-Path $candidate) { return $candidate }
         $currentDir = $currentDir.Parent
     }
     return $null
 }
 
-# Function to find apiproxy or apiproxies folder downward from startDir
 function Find-ApiproxyParentFolderDown {
     param (
         [string]$startDir,
@@ -33,18 +105,11 @@ function Find-ApiproxyParentFolderDown {
     }
 }
 
-# Start script
-$currentDir = (Get-Location).Path
-Write-Host "Current directory: $currentDir"
-
 $configFileName = "org-config.txt"
-
-# Try to find existing org-config.txt upward
 $configPath = Find-ConfigFile -startDir $currentDir -fileName $configFileName
 $configDir = if ($configPath) { Split-Path $configPath -Parent } else { $null }
 
 if (-not $configPath) {
-    # Search downward for apiproxy folder
     $apiproxyFolderParent = Find-ApiproxyParentFolderDown -startDir $currentDir
 
     if ($apiproxyFolderParent) {
@@ -52,18 +117,16 @@ if (-not $configPath) {
         $configDir = $apiproxyFolderParent
         Write-Host "Creating '${configFileName}' in folder: $apiproxyFolderParent"
     } else {
-        # fallback to current directory
         $configPath = Join-Path $currentDir $configFileName
         $configDir = $currentDir
-        Write-Host "Could not find 'apiproxy' folder downward. Creating '${configFileName}' in current directory: $currentDir"
+        Write-Host "Creating '${configFileName}' in current directory: $currentDir"
     }
-    # Create empty config file
+
     "" | Out-File -FilePath $configPath -Encoding utf8
 } else {
     Write-Host "Found '${configFileName}' at: $configPath"
 }
 
-# Function to prompt selection
 function Prompt-Selection($items, $prompt) {
     if (-not $items -or $items.Count -eq 0) {
         Write-Host "No ${prompt} found. Exiting."
@@ -87,67 +150,47 @@ function Prompt-Selection($items, $prompt) {
     return $items[$index]
 }
 
-# Check gcloud login
-try {
-    $account = & gcloud auth list --filter=status:ACTIVE --format="value(account)"
-    if (-not $account) {
-        Write-Host "❌ You are not logged into gcloud. Please run 'gcloud auth login' first."
-        exit 1
-    } else {
-        Write-Host "✅ Logged in as: $account"
-    }
-} catch {
-    Write-Host "❌ Error running 'gcloud auth list'. Make sure gcloud CLI is installed."
-    exit 1
-}
-
-# Fetch organizations
-Write-Host "`nFetching Apigee organizations available to you..."
+# Get orgs
+Write-Host "`nFetching Apigee organizations..."
 try {
     $orgsOutput = & gcloud apigee organizations list --format="value(name)"
     $orgsArray = $orgsOutput -split "`n" | Where-Object { $_.Trim() -ne "" }
 
     if (-not $orgsArray -or $orgsArray.Count -eq 0) {
-        Write-Host "❌ No Apigee organizations found for your account."
+        Write-Host "No Apigee organizations found for your account."
         exit 1
     }
 } catch {
-    Write-Host "❌ Failed to fetch organizations: $_"
+    Write-Host "Failed to fetch organizations: $_"
     exit 1
 }
 
-# Prompt for org selection
 $selectedOrg = Prompt-Selection -items $orgsArray -prompt "organization"
 
-# Set the gcloud project to the selected org (assuming org name = project ID)
 Write-Host "`nSetting gcloud project to '$selectedOrg' ..."
 try {
     & gcloud config set project $selectedOrg | Out-Null
 } catch {
-    Write-Host "❌ Failed to set gcloud project to '$selectedOrg'."
+    Write-Host "Failed to set gcloud project to '$selectedOrg'."
     exit 1
 }
 
-# Fetch environments using current project (set above)
 Write-Host "`nFetching environments for org: $selectedOrg ..."
 try {
     $envsOutput = & gcloud apigee environments list 
-    # Clean each environment string: trim spaces and remove leading '-'
     $envsArray = $envsOutput -split "`n" | ForEach-Object { $_.Trim().TrimStart('-').Trim() } | Where-Object { $_ -ne "" }
 
     if (-not $envsArray -or $envsArray.Count -eq 0) {
-        Write-Host "⚠️  No environments found in organization '$selectedOrg'."
+        Write-Host "No environments found in organization '$selectedOrg'."
         exit 1
     }
 } catch {
-    Write-Host "❌ Failed to fetch environments: $_"
+    Write-Host "Failed to fetch environments: $_"
     exit 1
 }
 
-# Prompt for environment selection
 $selectedEnv = Prompt-Selection -items $envsArray -prompt "environment"
 
-# Save to config file
 @"
 org=$selectedOrg
 env=$selectedEnv
@@ -155,7 +198,6 @@ env=$selectedEnv
 
 Write-Host "`nSaved org and env to: $configPath"
 
-# Git commands - ALL RUN IN THE CONFIG DIRECTORY
 Push-Location $configDir
 try {
     Write-Host "`nStaging your changes in directory: $configDir"
@@ -179,4 +221,4 @@ finally {
     Pop-Location
 }
 
-Write-Host "Deploying your api proxy to the selected environment '$selectedEnv' in organization '$selectedOrg'..."
+Write-Host "Deploying your API proxy to the selected environment '$selectedEnv' in organization '$selectedOrg'..."
